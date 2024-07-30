@@ -81,66 +81,42 @@
             const title = document.createElement("h1");
             title.innerText = toc.title;
             contentDiv.appendChild(title);
-            toc.table_of_contents.forEach(topic => {
-                addTopic(topic, contentDiv);
+            toc.topics.forEach((topic, j) => {
+                addTopic(topic, contentDiv, j);
             });
         }
 
-        function addTopic(topic, parent) {
-            const topicDiv = document.createElement("div");
-            topicDiv.className = "topic";
-            topicDiv.innerHTML = `<h2>${topic.topic}</h2>`;
-            topic.subtopics.forEach(subtopic => {
-                addSubtopic(subtopic, topicDiv, topic.topic);
-            });
-            parent.appendChild(topicDiv);
-        }
-
-        function addSubtopic(subtopic, parent, topicTitle) {
-            const subtopicDiv = document.createElement("div");
-            subtopicDiv.className = "subtopic";
-            subtopicDiv.innerHTML = `<h3>${subtopic.title}</h3>`;
-            if (subtopic.sections.length > 0) {
-                subtopic.sections.forEach(section => {
-                    addSection(section, subtopicDiv, topicTitle, subtopic.title);
-                });
-            } else {
-                addSubtopicCheckbox(subtopic.title, subtopicDiv, topicTitle);
+        function addTopic(topic, parent, j) {
+            if (topic.subtopics.length > 0) {
+              const topicDiv = document.createElement("div");
+              topicDiv.className = "topic";
+              topicDiv.innerHTML = `<h2>${topic.topic}</h2>`;
+              topic.subtopics.forEach((subtopic, i) => {
+                addSubtopicCheckbox(subtopic, topicDiv, topic.topic, j, i);
+              });
+              parent.appendChild(topicDiv);
             }
-            parent.appendChild(subtopicDiv);
         }
 
-        function addSection(section, parent, topicTitle, subtopicTitle) {
-            const sectionDiv = document.createElement("div");
-            sectionDiv.className = "section";
-            sectionDiv.innerHTML = `
-                <label>
-                    <input type="checkbox" name="section" value="${section}" data-topic="${topicTitle}" data-subtopic="${subtopicTitle}" data-section="${section}">
-                    ${section}
-                </label>
-                <button class="expand-button" onclick="toggleSectionQuestions('${section}')">+</button>
-                <div class="section-questions" id="questions-${section}">
-                    <br>
-                    Examples:
-                    ${questionsData[section].map(q => `<p>${q}</p>`).join('')}
-                </div>
-            `;
-            parent.appendChild(sectionDiv);
-        }
+        function addSubtopicCheckbox(subtopic, parent, topicTitle, j, i) {
 
-        function addSubtopicCheckbox(subtopic, parent, topicTitle) {
             const subtopicDiv = document.createElement("div");
             subtopicDiv.className = "section";
             subtopicDiv.innerHTML = `
                 <label>
                     <input type="checkbox" name="section" value="${subtopic}" data-topic="${topicTitle}" data-subtopic="${subtopic}" data-section="${subtopic}">
                     ${subtopic}
-                </label>
-                <button class="expand-button" onclick="toggleSectionQuestions('${subtopic}')">+</button>
+                </label>`;
+            let questions = questionsData.topics[j].subtopics[i].questions
+            if (questions && questions.length > 0) {
+              subtopicDiv.innerHTML += `<button class="expand-button" onclick="toggleSectionQuestions('${subtopic}')">+</button>
                 <div class="section-questions" id="questions-${subtopic}">
-                    ${questionsData[subtopic].map(q => `<p>${q}</p>`).join('')}
+                    <br>
+                    Examples:
+                    ${questions.map(q => `<p>${q}</p>`).join('')}
                 </div>
             `;
+            }   
             parent.appendChild(subtopicDiv);
         }
 
@@ -172,7 +148,9 @@
                 const subtopic = sectionCheckbox.dataset.subtopic;
                 const sectionTitle = sectionCheckbox.dataset.section;
                 const questionIndex = selectedQuestions.filter(q => q.section === section).length;
-                const questions = questionsData[section];
+                let tpc = questionsData.topics.find(tpc => tpc.topic === topic);
+                let stpc = tpc.subtopics.find(stpc => stpc.subtopic === subtopic);
+                const questions = stpc.questions;
                 if (questionIndex < questions.length) {
                     const question = questions[questionIndex];
                     selectedQuestions.push({ section, question, topic, subtopic, sectionTitle });
