@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table of Contents</title>
+    <style>
+       .section:hover {
+            background-color: #e6f7ff; /* light blue background on hover */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            margin-top: 20px;
+        }
+        .column {
+            width: 45%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+        }
+        .topic, .subtopic, .section, .questions {
+            margin-bottom: 10px;
+        }
+        .button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .toggle-checkbox {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .quiz-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .highlight {
+            background-color: #ffff99;
+        }
+        .section-questions {
+            display: none;
+            margin-left: 20px;
+        }
+        .expand-button {
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .delete-button {
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+    <script src="questions.js"></script>
+    <script src="toc.js"></script>
+    <script>
+        let selectedQuestions = [];
+
+        function generateTOC(toc) {
+            const contentDiv = document.getElementById("content");
+            contentDiv.innerHTML = "";
+            const title = document.createElement("h1");
+            title.innerText = toc.title;
+            contentDiv.appendChild(title);
+            toc.table_of_contents.forEach(topic => {
+                addTopic(topic, contentDiv);
+            });
+        }
+
+        function addTopic(topic, parent) {
+            const topicDiv = document.createElement("div");
+            topicDiv.className = "topic";
+            topicDiv.innerHTML = `<h2>${topic.topic}</h2>`;
+            topic.subtopics.forEach(subtopic => {
+                addSubtopic(subtopic, topicDiv, topic.topic);
+            });
+            parent.appendChild(topicDiv);
+        }
+
+        function addSubtopic(subtopic, parent, topicTitle) {
+            const subtopicDiv = document.createElement("div");
+            subtopicDiv.className = "subtopic";
+            subtopicDiv.innerHTML = `<h3>${subtopic.title}</h3>`;
+            if (subtopic.sections.length > 0) {
+                subtopic.sections.forEach(section => {
+                    addSection(section, subtopicDiv, topicTitle, subtopic.title);
+                });
+            } else {
+                addSubtopicCheckbox(subtopic.title, subtopicDiv, topicTitle);
+            }
+            parent.appendChild(subtopicDiv);
+        }
+
+        function addSection(section, parent, topicTitle, subtopicTitle) {
+            const sectionDiv = document.createElement("div");
+            sectionDiv.className = "section";
+            sectionDiv.innerHTML = `
+                <label>
+                    <input type="checkbox" name="section" value="${section}" data-topic="${topicTitle}" data-subtopic="${subtopicTitle}" data-section="${section}">
+                    ${section}
+                </label>
+                <button class="expand-button" onclick="toggleSectionQuestions('${section}')">+</button>
+                <div class="section-questions" id="questions-${section}">
+                    <br>
+                    Examples:
+                    ${questionsData[section].map(q => `<p>${q}</p>`).join('')}
+                </div>
+            `;
+            parent.appendChild(sectionDiv);
+        }
+
+        function addSubtopicCheckbox(subtopic, parent, topicTitle) {
+            const subtopicDiv = document.createElement("div");
+            subtopicDiv.className = "section";
+            subtopicDiv.innerHTML = `
+                <label>
+                    <input type="checkbox" name="section" value="${subtopic}" data-topic="${topicTitle}" data-subtopic="${subtopic}" data-section="${subtopic}">
+                    ${subtopic}
+                </label>
+                <button class="expand-button" onclick="toggleSectionQuestions('${subtopic}')">+</button>
+                <div class="section-questions" id="questions-${subtopic}">
+                    ${questionsData[subtopic].map(q => `<p>${q}</p>`).join('')}
+                </div>
+            `;
+            parent.appendChild(subtopicDiv);
+        }
+
+        function toggleCheckboxes() {
+            const checkboxes = document.querySelectorAll('input[name="section"]');
+            const toggleState = document.getElementById("toggleCheckbox").checked;
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = toggleState;
+            });
+        }
+
+        function toggleSectionQuestions(section) {
+            const sectionQuestionsDiv = document.getElementById(`questions-${section}`);
+            const button = sectionQuestionsDiv.previousElementSibling;
+            if (sectionQuestionsDiv.style.display !== 'block') {
+                sectionQuestionsDiv.style.display = 'block';
+                button.textContent = '-';
+            } else {
+                sectionQuestionsDiv.style.display = 'none';
+                button.textContent = '+';
+            }
+        }
+
+        function addSelectedQuestions() {
+            const selectedSections = document.querySelectorAll('input[name="section"]:checked');
+            selectedSections.forEach(sectionCheckbox => {
+                const section = sectionCheckbox.value;
+                const topic = sectionCheckbox.dataset.topic;
+                const subtopic = sectionCheckbox.dataset.subtopic;
+                const sectionTitle = sectionCheckbox.dataset.section;
+                const questionIndex = selectedQuestions.filter(q => q.section === section).length;
+                const questions = questionsData[section];
+                if (questionIndex < questions.length) {
+                    const question = questions[questionIndex];
+                    selectedQuestions.push({ section, question, topic, subtopic, sectionTitle });
+                    highlightSection(section);
+                } else {
+                    alert(`No more questions available for the section: ${section}`);
+                }
+            });
+            clearCheckedQuestions();
+            updateSelectedQuestions();
+        }
+
+        function highlightSection(section) {
+            const sectionDivs = document.querySelectorAll(`input[value="${section}"]`);
+            sectionDivs.forEach(div => {
+                div.parentElement.classList.add("highlight");
+            });
+        }
+
+        function unhighlightSection(section) {
+            const sectionDivs = document.querySelectorAll(`input[value="${section}"]`);
+            sectionDivs.forEach(div => {
+                div.parentElement.classList.remove("highlight");
+            });
+        }
+
+        function clearCheckedQuestions() {
+            const selectedSections = document.querySelectorAll('input[name="section"]:checked');
+            selectedSections.forEach(sectionCheckbox => {
+                sectionCheckbox.checked = false;
+            });
+        }
+
+        function updateSelectedQuestions() {
+            const quizDiv = document.getElementById("quiz");
+            quizDiv.innerHTML = "<h2>Selected Questions</h2>";
+            selectedQuestions.forEach((q, index) => {
+                const questionP = document.createElement("p");
+                questionP.innerHTML = `${index + 1}. ${q.question} <button class="delete-button" onclick="removeQuestion(${index})">&times;</button><br><small>From: ${q.topic} > ${q.subtopic} > ${q.sectionTitle}</small>`;
+                quizDiv.appendChild(questionP);
+            });
+        }
+
+        function removeQuestion(index) {
+            const section = selectedQuestions[index].section;
+            selectedQuestions.splice(index, 1);
+            updateSelectedQuestions();
+            if (!selectedQuestions.some(q => q.section === section)) {
+                unhighlightSection(section);
+            }
+        }
+
+        function clearAllQuestions() {
+            selectedQuestions.forEach(q => {
+                unhighlightSection(q.section);
+            });
+            selectedQuestions = [];
+            updateSelectedQuestions();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            generateTOC(tocData);
+        });
+    </script>
+</head>
+<body>
+  <div class="column">
+      <div>
+        <button class="button" disabled>Upload File</button>
+        <a target="_blank" href="https://oxvard.wordpress.com/wp-content/uploads/2018/04/cambridge-international-as-and-a-level-mathematics-pure-mathematics-1.pdf">
+          Pure Mathematics 1.pdf (10.6 MB)
+        </a>
+      </div><br>
+      <div class="quiz-buttons">
+          <button class="button" onclick="addSelectedQuestions()">Add Selected Questions</button>
+      </div>
+      <div class="toggle-checkbox">
+          <label><input type="checkbox" id="toggleCheckbox" onclick="toggleCheckboxes()"> Select/Deselect All</label>
+      </div>
+      <div id="content"></div>
+  </div>
+  <div class="column" >
+    <div class="quiz-buttons">
+      <button class="button" onclick="clearAllQuestions()">Clear Selected Questions</button>
+    </div>
+    <div id="quiz">
+        <h2>Selected Questions</h2>
+    </div>
+  </div>
+</body>
+</html>
