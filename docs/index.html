@@ -8,6 +8,10 @@
        .section:hover {
             background-color: #e6f7ff; /* light blue background on hover */
         }
+        .section:hover .expand-button,
+        .question:hover .delete-button {
+            display: inline;
+        }
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -47,13 +51,23 @@
             display: none;
             margin-left: 20px;
         }
+
+        .expand-button, .delete-button {
+          margin: 0;
+          padding: 0;
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+
         .expand-button {
             font-size: 16px;
             cursor: pointer;
+            display: none;
         }
         .delete-button {
             cursor: pointer;
             font-size: 16px;
+            display: none;
         }
     </style>
     <script src="questions.js"></script>
@@ -197,6 +211,7 @@
             quizDiv.innerHTML = "<h2>Selected Questions</h2>";
             selectedQuestions.forEach((q, index) => {
                 const questionP = document.createElement("p");
+                questionP.className = "question";
                 questionP.innerHTML = `${index + 1}. ${q.question} <button class="delete-button" onclick="removeQuestion(${index})">&times;</button><br><small>From: ${q.topic} > ${q.subtopic} > ${q.sectionTitle}</small>`;
                 quizDiv.appendChild(questionP);
             });
